@@ -1,5 +1,4 @@
 - Begin a gpu session using the following command: 
-	OKL: `srun -p gpu -c 1 --pty bash -i`
 	Pitt : `srun -M gpu -p preempt --gres=gpu:1  --pty bash -i`
 - Check whether the session is running or not by giving command: 
 	`nvidia-smi`: if it gives out an out put you are logged in to the GPU node
