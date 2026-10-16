@@ -1,7 +1,7 @@
 #Author: Chinmay Mhatre
 
 '''
-This code calculates Service Units consumed during active learning training, including neural network training, molecular dynamics runs and DFT relabling. 
+This code calculates Service Units consumed during active learning training of homogenous phase systems using pyGSM, including neural network training, molecular dynamics runs and DFT relabling. 
 The details about the archetecture can be found on https://crc.pitt.edu/overview-crc-services/computing-hardware
 '''
 
