@@ -29,6 +29,7 @@ from dscribe.descriptors import SOAP
 from sklearn.preprocessing import StandardScaler
 
 from scipy.stats import entropy
+from sklearn.neighbors import NearestNeighbors
 from scipy.stats import wasserstein_distance
 from scipy.spatial import ConvexHull
 
@@ -222,3 +223,109 @@ for i in range(total_generation):
     embeddings += [embedding]
     volumes = plot_convex_hulls_together(embeddings, np.arange(0,15))
     print("Convex Hull Volumes:", volumes)
+
+
+def plot_cumulative_emd(embedding_dir, num_generations):
+    """
+    Computes cumulative EMD values for each generation compared to all previous generations combined,
+    and plots a bar chart.
+
+    embedding_dir: Directory containing UMAP embeddings.
+    num_generations: Total number of generations.
+    """
+    embeddings = []
+    knn=[0]
+    fig, (ax2,ax3) = plt.subplots(1, 2, figsize=(15, 6))
+    volumes=[]
+
+    for i, (embedding, label) in enumerate(zip(embeddings, np.arange(num_generations))):
+        if i % 3 !=0:
+            continue
+            
+        # Compute convex hull and volume for current embedding
+        volume, hull = compute_convex_hull_volume(embedding)
+        volumes.append(volume)
+        jitter_strength = 0.02
+        jittered_embedding = embedding + np.random.normal(scale=jitter_strength, size=embedding.shape)
+        
+    # Plot the bar chart for convex hull volumes
+    bar2=ax2.bar(np.arange(num_generations), volumes, color=plt.cm.coolwarm(300), alpha=1,ec="black", lw=1.75)
+    
+    ax2.tick_params(direction='in',right=True, top=True)
+    ax2.tick_params(axis='both', labelsize=18)
+#     ax2.set_title('Convex Hull Volumes')
+    ax2.set_xlabel('Generation', labelpad=15,size=18)
+    ax2.set_ylabel('Volume',labelpad=15,size=18)
+    #for bar, label in zip(bar2, generation_labels):
+    #    ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height(), label,
+    #        ha='center', va='bottom', fontsize=15, fontweight='bold')
+    #ax2.set_xticks(generation_labels)
+    ax2.set_xticks([])
+    
+    # Load embeddings for each generation
+    for i in range(num_generations):
+        gen_i = sorted([x for x in os.listdir(embedding_dir) if f'gen-{i}-' in x])
+        
+        
+        for j, em_path in enumerate(gen_i):
+            if j == 0:
+                embedding = np.load(f'{embedding_dir}/{em_path}')
+            else:
+                embedding = np.vstack((embedding, np.load(f'{embedding_dir}/{em_path}')))
+        
+        embeddings.append(embedding)
+
+    # Compute cumulative EMD for each generation
+    cumulative_embeddings = embeddings[0]  # Start with gen-0
+    cumulative_emd_values = [0]  # Include gen-0 with EMD = 0
+
+    for i in range(1, num_generations):  # Start from gen-1
+        current_embedding = embeddings[i]  # Current generation
+        nbrs1 = NearestNeighbors(n_neighbors=1).fit(cumulative_embeddings)
+        distances1, _ = nbrs1.kneighbors(current_embedding)
+        print("cumulative: ",len(cumulative_embeddings))
+        print('current: ',len(current_embedding))
+        print("distance1",len(distances1))
+
+        # nbrs2 = NearestNeighbors(n_neighbors=1).fit(cumulative_embeddings)
+        # distances2, _ = nbrs2.kneighbors(current_embedding)
+
+        knn_similarity = np.mean(distances1)
+        knn.append(knn_similarity)
+        print(f"KNN Cross Distance: {knn_similarity}")
+        
+#         emd_value = compute_emd(cumulative_embeddings, current_embedding)  # Compute EMD
+#         cumulative_emd_values.append(emd_value)
+        
+#         # Update cumulative embeddings for next step
+        cumulative_embeddings = np.vstack((cumulative_embeddings, current_embedding))
+
+
+#         print(f"EMD between (gen-0 to gen-{i-1}) and gen-{i}: {emd_value}")
+
+#     # Plot cumulative EMD values as a bar chart
+#     # fig, ax = plt.subplots(figsize=(8, 6))
+    generation_labels = np.arange(0, num_generations)  # Include gen-0
+    # plt.bar(generation_labels, knn)
+    #plt.bar(generation_labels, knn, color=plt.cm.coolwarm(300), alpha=0.7, edgecolor="black", linewidth=1.75)
+
+    bar3=plt.bar(generation_labels,knn, color=plt.cm.coolwarm(300), alpha=1,ec="black", lw=1.75)
+    
+    #for bar, label in zip(bar3, generation_labels):
+    #    plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), label,
+    #        ha='center', va='bottom', fontsize=15, fontweight='bold')
+    
+    plt.xlabel('Generation', fontsize=18)
+    plt.ylabel('Cumulative NN Distance', fontsize=18)
+    plt.xticks(generation_labels)
+    plt.tick_params(direction='in', right=True, top=True, labelsize=18)
+
+    plt.tight_layout()
+    plt.show()
+
+    return cumulative_emd_values
+
+# Example usage:
+embedding_dir = 'YOUR/DIR/UMAP_embeddings'  # Path to your embedding files
+num_generations = 20  # Set based on your data
+cumulative_emd_values = plot_cumulative_emd(embedding_dir, num_generations)
