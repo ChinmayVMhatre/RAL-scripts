@@ -1,5 +1,6 @@
 '''
-
+This code calculates Service Units consumed during active learning training of heterogenous phase systems using ASE-NEB, including neural network training, molecular dynamics runs and DFT relabling. 
+The details about the archetecture can be found on https://crc.pitt.edu/overview-crc-services/computing-hardware
 '''
 
 import numpy as np
